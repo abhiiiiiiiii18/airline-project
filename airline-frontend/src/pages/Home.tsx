@@ -36,12 +36,12 @@ export default function Home() {
     <Box className="w-full flex flex-col min-h-screen">
       {/* HERO SECTION */}
       <Box
-        className="w-full min-h-screen bg-cover bg-center relative flex items-center justify-end overflow-hidden"
+        className="w-full min-h-screen bg-cover bg-center relative flex items-center justify-between overflow-hidden"
         style={{ backgroundImage: `url('/images/hero-airline.jpg')` }}
       >
         {/* Animated Overlay */}
         <motion.div
-          className="absolute inset-0 bg-black/40 z-0"
+          className="absolute inset-0 bg-black/50 z-0"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5 }}
@@ -49,7 +49,7 @@ export default function Home() {
 
         {/* Floating Elements */}
         <motion.div
-          className="absolute top-20 left-20 text-white/20"
+          className="absolute top-20 left-20 text-white/15 max-md:hidden"
           animate={{ 
             y: [0, -20, 0],
             rotate: [0, 5, 0]
@@ -64,7 +64,7 @@ export default function Home() {
         </motion.div>
 
         <motion.div
-          className="absolute bottom-32 left-40 text-white/10"
+          className="absolute bottom-32 left-40 text-white/10 max-lg:hidden"
           animate={{ 
             y: [0, 20, 0],
             rotate: [0, -5, 0]
@@ -79,40 +79,52 @@ export default function Home() {
           <FlightTakeoffIcon sx={{ fontSize: 60 }} />
         </motion.div>
 
-        {/* Hero Text */}
+        {/* Hero Text - Left Side */}
         <motion.div
-          className="absolute left-10 md:left-20 top-1/3 z-10 text-white max-w-xl"
+          className="relative z-10 text-white flex-1 flex items-center"
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 1, delay: 0.5 }}
+          style={{ paddingLeft: "5%", maxWidth: "50%" }}
         >
-          <motion.h1
-            className="text-5xl md:text-7xl font-bold mb-4"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-          >
-            Fly Beyond
-            <motion.span
-              className="block text-blue-400"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 1.2 }}
+          <div>
+            <motion.h1
+              className="text-5xl md:text-6xl xl:text-7xl font-bold mb-4 drop-shadow-lg"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              style={{ 
+                textShadow: "2px 2px 4px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.3)"
+              }}
             >
-              Expectations
-            </motion.span>
-          </motion.h1>
-          <motion.p
-            className="text-xl md:text-2xl text-gray-200"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.4 }}
-          >
-            Your journey starts here. Experience luxury in the skies.
-          </motion.p>
+              Fly Beyond
+              <motion.span
+                className="block text-blue-400"
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 1.2 }}
+                style={{ 
+                  textShadow: "2px 2px 4px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.3)"
+                }}
+              >
+                Expectations
+              </motion.span>
+            </motion.h1>
+            <motion.p
+              className="text-lg md:text-xl xl:text-2xl text-gray-100 drop-shadow-md max-w-md"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 1.4 }}
+              style={{ 
+                textShadow: "1px 1px 2px rgba(0,0,0,0.8)"
+              }}
+            >
+              Your journey starts here. Experience luxury in the skies.
+            </motion.p>
+          </div>
         </motion.div>
 
-        {/* Flight Search Card */}
+        {/* Flight Search Card - Right Side */}
         <motion.div
           initial={{ x: 300, opacity: 0, scale: 0.8 }}
           animate={{ x: 0, opacity: 1, scale: 1 }}
@@ -122,24 +134,36 @@ export default function Home() {
             stiffness: 100
           }}
           whileHover={{ scale: 1.02 }}
-          className="relative z-10 mr-10 max-sm:mr-0 max-sm:mx-4"
+          className="relative z-20"
+          style={{ paddingRight: "5%", maxWidth: "45%" }}
         >
           <Card sx={{ 
-            minWidth: 300, 
-            maxWidth: 400, 
-            p: 3, 
-            borderRadius: 3, 
-            boxShadow: 6,
-            background: "rgba(255, 255, 255, 0.95)",
-            backdropFilter: "blur(10px)"
+            width: "100%",
+            maxWidth: 450,
+            p: { xs: 2, md: 3 }, 
+            borderRadius: 4, 
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            background: "rgba(255, 255, 255, 0.98)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.3)"
           }}>
-            <CardContent>
+            <CardContent sx={{ padding: { xs: "16px", md: "24px" } }}>
               <motion.div
                 initial={{ y: -10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 1.2 }}
               >
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                <Typography 
+                  variant="h6" 
+                  fontWeight="bold" 
+                  gutterBottom
+                  sx={{ 
+                    fontSize: { xs: "1.1rem", md: "1.25rem" },
+                    color: "primary.main",
+                    textAlign: "center",
+                    mb: 3
+                  }}
+                >
                   Search Flights ✈️
                 </Typography>
               </motion.div>
@@ -149,7 +173,18 @@ export default function Home() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 1.3 }}
               >
-                <TextField fullWidth label="From" margin="normal" />
+                <TextField 
+                  fullWidth 
+                  label="From" 
+                  margin="normal"
+                  variant="outlined"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      backgroundColor: "rgba(255, 255, 255, 0.8)"
+                    }
+                  }}
+                />
               </motion.div>
               
               <motion.div
@@ -157,7 +192,18 @@ export default function Home() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 1.4 }}
               >
-                <TextField fullWidth label="To" margin="normal" />
+                <TextField 
+                  fullWidth 
+                  label="To" 
+                  margin="normal"
+                  variant="outlined"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      backgroundColor: "rgba(255, 255, 255, 0.8)"
+                    }
+                  }}
+                />
               </motion.div>
               
               <motion.div
@@ -171,6 +217,13 @@ export default function Home() {
                   type="date"
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      backgroundColor: "rgba(255, 255, 255, 0.8)"
+                    }
+                  }}
                 />
               </motion.div>
               
@@ -185,6 +238,13 @@ export default function Home() {
                   type="date"
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      backgroundColor: "rgba(255, 255, 255, 0.8)"
+                    }
+                  }}
                 />
               </motion.div>
               
@@ -200,9 +260,21 @@ export default function Home() {
                   color="primary"
                   startIcon={<FlightTakeoffIcon />}
                   fullWidth
-                  sx={{ mt: 2 }}
+                  sx={{ 
+                    mt: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                    boxShadow: "0 8px 25px rgba(25, 118, 210, 0.3)",
+                    background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
+                    "&:hover": {
+                      boxShadow: "0 12px 35px rgba(25, 118, 210, 0.4)",
+                      background: "linear-gradient(45deg, #1565c0 30%, #1976d2 90%)"
+                    }
+                  }}
                 >
-                  Search
+                  Search Flights
                 </Button>
               </motion.div>
             </CardContent>
@@ -464,8 +536,8 @@ export default function Home() {
         </Box>
       </Container>
 
-      {/* REVIEWS SECTION */}
-      <Box sx={{ bgcolor: "grey.100", py: 10, overflow: "hidden" }}>
+    {/* REVIEWS SECTION */}
+      <Box sx={{ bgcolor: "grey.100", py: 10 }}>
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -478,11 +550,14 @@ export default function Home() {
             </Typography>
           </motion.div>
           
-          <Box className="flex overflow-x-auto space-x-6 py-4 px-2">
+          <Box sx={{ 
+            display: "grid", 
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+            gap: 3
+          }}>
             {reviews.map((review, idx) => (
               <motion.div
                 key={idx}
-                className="min-w-[320px]"
                 initial={{ opacity: 0, y: 50, rotateY: -15 }}
                 whileInView={{ opacity: 1, y: 0, rotateY: 0 }}
                 viewport={{ once: true }}
@@ -506,7 +581,9 @@ export default function Home() {
                   border: `2px solid ${review.color}30`,
                   position: "relative",
                   overflow: "visible",
-                  height: "100%"
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column"
                 }}>
                   {/* Decorative Corner */}
                   <Box
@@ -556,6 +633,7 @@ export default function Home() {
                       fontStyle: "italic",
                       position: "relative",
                       pl: 2,
+                      flexGrow: 1,
                       "&::before": {
                         content: '"""',
                         position: "absolute",
@@ -575,7 +653,6 @@ export default function Home() {
           </Box>
         </Container>
       </Box>
-
       {/* FOOTER SECTION */}
       <motion.div
         initial={{ opacity: 0 }}
