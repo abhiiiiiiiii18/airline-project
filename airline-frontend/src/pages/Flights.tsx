@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 
 interface Flight {
   id: number;
@@ -32,6 +34,7 @@ interface SearchParams {
 }
 
 export default function FlightSearch() {
+   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useState<SearchParams>({
     from: "",
     to: "",
@@ -39,8 +42,9 @@ export default function FlightSearch() {
     returnDate: "",
     passengers: 1,
     flightClass: "Economy",
+    
   });
-
+  
   const [showResults, setShowResults] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<"price" | "departure" | "duration" | "rating">("price");
 
@@ -200,8 +204,8 @@ export default function FlightSearch() {
   };
 
   const handleSelectFlight = (flight: Flight) => {
-    alert(`Flight Selected!\n\nFlight: ${flight.flightNumber}\nAirline: ${flight.airline}\nRoute: ${flight.from} (${flight.fromCode}) → ${flight.to} (${flight.toCode})\nDeparture: ${flight.departure}\nArrival: ${flight.arrival}\nPrice: ₹${flight.price.toLocaleString()}\n\nProceeding to seat selection...`);
-  };
+  navigate('/booking', { state: { selectedFlight: flight } });
+};
 
   const getAirlineLogo = (airline: string) => {
     const logos: Record<string, string> = {

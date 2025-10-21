@@ -10,18 +10,39 @@ interface Seat {
   features?: string[];
 }
 
-export default function SeatSelection() {
-  const flightInfo = {
-    flightNumber: "AI-2156",
-    airline: "Air India",
-    from: "Delhi (DEL)",
-    to: "Mumbai (BOM)",
-    departure: "06:00",
-    arrival: "08:30",
-    date: "2025-10-23",
-    basePrice: 5999,
-    aircraft: "Boeing 737-800"
-  };
+interface SeatSelectionProps {
+  flightData?: any;
+}
+
+// ❌ Wrong:
+// export default function SeatSelection({ flightData }: SeatSelectionProps) const flightInfo = ...
+
+// ✅ Correct:
+export default function SeatSelection({ flightData }: SeatSelectionProps) {
+  const flightInfo = flightData
+    ? {
+        flightNumber: flightData.flightNumber,
+        airline: flightData.airline,
+        from: `${flightData.from} (${flightData.fromCode})`,
+        to: `${flightData.to} (${flightData.toCode})`,
+        departure: flightData.departure,
+        arrival: flightData.arrival,
+        date: "2025-10-23",
+        basePrice: flightData.price,
+        aircraft: flightData.aircraft,
+      }
+    : {
+        flightNumber: "AI-2156",
+        airline: "Air India",
+        from: "Delhi (DEL)",
+        to: "Mumbai (BOM)",
+        departure: "06:00",
+        arrival: "08:30",
+        date: "2025-10-23",
+        basePrice: 5999,
+        aircraft: "Boeing 737-800",
+      };
+
 
   // Generate seats layout
   const generateSeats = (): Seat[] => {
