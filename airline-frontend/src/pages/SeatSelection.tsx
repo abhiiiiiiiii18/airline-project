@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PaymentModal from "../components/payment/PaymentModal";
 
 interface Seat {
   id: string;
@@ -12,13 +13,10 @@ interface Seat {
 
 interface SeatSelectionProps {
   flightData?: any;
+  onContinueToPayment?: (bookingData: any) => void;
 }
 
-// ❌ Wrong:
-// export default function SeatSelection({ flightData }: SeatSelectionProps) const flightInfo = ...
-
-// ✅ Correct:
-export default function SeatSelection({ flightData }: SeatSelectionProps) {
+export default function SeatSelection({ flightData, onContinueToPayment }: SeatSelectionProps) {
   const flightInfo = flightData
     ? {
         flightNumber: flightData.flightNumber,
@@ -43,13 +41,10 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
         aircraft: "Boeing 737-800",
       };
 
-
-  // Generate seats layout
   const generateSeats = (): Seat[] => {
     const seats: Seat[] = [];
     const columns = ["A", "B", "C", "D", "E", "F"];
     
-    // Business Class (Rows 1-3)
     for (let row = 1; row <= 3; row++) {
       for (let col of ["A", "C", "D", "F"]) {
         seats.push({
@@ -64,7 +59,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
       }
     }
 
-    // Premium Economy (Rows 4-8)
     for (let row = 4; row <= 8; row++) {
       for (let col of columns) {
         seats.push({
@@ -79,7 +73,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
       }
     }
 
-    // Economy Class (Rows 9-30)
     for (let row = 9; row <= 30; row++) {
       for (let col of columns) {
         seats.push({
@@ -98,6 +91,8 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
 
   const [seats, setSeats] = useState<Seat[]>(generateSeats());
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [bookingData, setBookingData] = useState<any>(null);
 
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.id === seatId);
@@ -130,15 +125,48 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
     }
   };
 
-  const totalPrice = seats
-    .filter(s => s.status === "selected")
-    .reduce((sum, s) => sum + s.price, 0) + flightInfo.basePrice;
-
   const selectedSeatDetails = seats.filter(s => s.status === "selected");
+  const seatCharges = selectedSeatDetails.reduce((sum, s) => sum + s.price, 0);
+  const totalPrice = seatCharges + flightInfo.basePrice;
+
+  const handleContinueToPayment = () => {
+    if (selectedSeats.length === 0) {
+      alert("Please select at least one seat");
+      return;
+    }
+
+    const booking = {
+      flightNumber: flightInfo.flightNumber,
+      airline: flightInfo.airline,
+      from: flightInfo.from,
+      to: flightInfo.to,
+      departure: flightInfo.departure,
+      arrival: flightInfo.arrival,
+      date: flightInfo.date,
+      seats: selectedSeats,
+      basePrice: flightInfo.basePrice,
+      seatCharges: seatCharges,
+      totalPrice: totalPrice
+    };
+
+    setBookingData(booking);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (paymentData: any) => {
+    // Handle successful payment
+    console.log("Payment successful:", paymentData);
+    alert(`Payment Successful!\n\nOrder ID: ${paymentData.orderId}\nAmount: ₹${paymentData.amount.toLocaleString()}\n\nYour booking is confirmed!`);
+    
+    // You could redirect to booking confirmation page here
+    // or call parent callback if provided
+    if (onContinueToPayment) {
+      onContinueToPayment({ ...bookingData, payment: paymentData });
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(to bottom, #f8fafc, #f1f5f9)" }}>
-      {/* Navigation */}
       <div style={{ background: "white", borderBottom: "1px solid #e5e7eb", padding: "16px 0" }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0 24px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -149,7 +177,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
       </div>
 
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "32px 24px" }}>
-        {/* Progress Bar */}
         <div style={{ marginBottom: "32px" }}>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -169,7 +196,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
           </div>
         </div>
 
-        {/* Flight Info Card */}
         <div style={{ background: "white", borderRadius: "16px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
             <div>
@@ -192,9 +218,7 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "24px" }}>
-          {/* Seat Map */}
           <div style={{ background: "white", borderRadius: "16px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            {/* Legend */}
             <div style={{ display: "flex", justifyContent: "center", gap: "24px", marginBottom: "32px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: "#10b981" }} />
@@ -218,16 +242,13 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
               </div>
             </div>
 
-            {/* Plane Front */}
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
               <div style={{ width: "400px", height: "60px", background: "linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%)", borderRadius: "100px 100px 0 0", display: "flex", alignItems: "center", justifyContent: "center", border: "3px solid #a5b4fc" }}>
                 <span style={{ fontSize: "18px", fontWeight: "bold", color: "#4338ca" }}>✈️ FRONT</span>
               </div>
             </div>
 
-            {/* Seat Grid */}
             <div style={{ maxHeight: "600px", overflowY: "auto", padding: "0 20px" }}>
-              {/* Business Class */}
               <div style={{ marginBottom: "32px" }}>
                 <div style={{ textAlign: "center", marginBottom: "16px", padding: "8px", background: "linear-gradient(135deg, #f3e8ff, #e9d5ff)", borderRadius: "8px" }}>
                   <span style={{ fontWeight: "bold", color: "#7c3aed" }}>BUSINESS CLASS</span>
@@ -294,7 +315,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
                 ))}
               </div>
 
-              {/* Premium Economy */}
               <div style={{ marginBottom: "32px" }}>
                 <div style={{ textAlign: "center", marginBottom: "16px", padding: "8px", background: "linear-gradient(135deg, #fef3c7, #fde68a)", borderRadius: "8px" }}>
                   <span style={{ fontWeight: "bold", color: "#d97706" }}>PREMIUM ECONOMY</span>
@@ -361,7 +381,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
                 ))}
               </div>
 
-              {/* Economy Class */}
               <div>
                 <div style={{ textAlign: "center", marginBottom: "16px", padding: "8px", background: "linear-gradient(135deg, #d1fae5, #a7f3d0)", borderRadius: "8px" }}>
                   <span style={{ fontWeight: "bold", color: "#059669" }}>ECONOMY CLASS</span>
@@ -430,7 +449,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
             </div>
           </div>
 
-          {/* Booking Summary */}
           <div>
             <div style={{ background: "white", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", position: "sticky", top: "24px" }}>
               <h3 style={{ fontSize: "20px", fontWeight: "bold", color: "#1e293b", marginBottom: "16px" }}>
@@ -487,6 +505,7 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
               </div>
 
               <button
+                onClick={handleContinueToPayment}
                 disabled={selectedSeats.length === 0}
                 style={{
                   width: "100%",
@@ -510,11 +529,6 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
                   e.currentTarget.style.transform = "translateY(0)";
                   e.currentTarget.style.boxShadow = "none";
                 }}
-                onClick={() => {
-                  if (selectedSeats.length > 0) {
-                    alert(`Proceeding to payment for seats: ${selectedSeats.join(", ")}\nTotal: ₹${totalPrice.toLocaleString()}`);
-                  }
-                }}
               >
                 Continue to Payment →
               </button>
@@ -526,6 +540,20 @@ export default function SeatSelection({ flightData }: SeatSelectionProps) {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        bookingDetails={{
+          totalAmount: totalPrice,
+          flightNumber: flightInfo.flightNumber,
+          seats: selectedSeats,
+          from: flightInfo.from,
+          to: flightInfo.to
+        }}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }
