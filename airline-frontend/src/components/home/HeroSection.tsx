@@ -1,10 +1,27 @@
 import { Box, Typography, Card, CardContent, TextField, Button, Chip } from "@mui/material";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 
 export default function HeroSection() {
+  const navigate = useNavigate();
+  const departureDateRef = useRef<HTMLInputElement>(null);
+  const returnDateRef = useRef<HTMLInputElement>(null);
+
+  const handleDepartureDateClick = () => {
+    if (departureDateRef.current) {
+      departureDateRef.current.showPicker();
+    }
+  };
+
+  const handleReturnDateClick = () => {
+    if (returnDateRef.current) {
+      returnDateRef.current.showPicker();
+    }
+  };
   return (
     <Box
       className="w-full min-h-screen relative flex items-center justify-between overflow-hidden"
@@ -489,11 +506,14 @@ export default function HeroSection() {
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
                   variant="outlined"
+                  inputRef={departureDateRef}
+                  onClick={handleDepartureDateClick}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 3,
                       backgroundColor: "rgba(245, 247, 250, 0.8)",
                       transition: 'all 0.3s',
+                      cursor: 'pointer',
                       '&:hover': {
                         backgroundColor: 'white',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
@@ -520,11 +540,14 @@ export default function HeroSection() {
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
                   variant="outlined"
+                  inputRef={returnDateRef}
+                  onClick={handleReturnDateClick}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 3,
                       backgroundColor: "rgba(245, 247, 250, 0.8)",
                       transition: 'all 0.3s',
+                      cursor: 'pointer',
                       '&:hover': {
                         backgroundColor: 'white',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
@@ -550,6 +573,7 @@ export default function HeroSection() {
                 variant="contained"
                 startIcon={<FlightTakeoffIcon />}
                 fullWidth
+                onClick={() => navigate('/flights')}
                 sx={{ 
                   mt: 3,
                   py: 2,
