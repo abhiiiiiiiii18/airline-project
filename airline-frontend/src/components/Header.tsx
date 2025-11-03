@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   AppBar, 
   Toolbar, 
@@ -25,10 +26,20 @@ import LanguageIcon from "@mui/icons-material/Language";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 export default function Header() {
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [servicesAnchor, setServicesAnchor] = useState<null | HTMLElement>(null);
   const [accountAnchor, setAccountAnchor] = useState<null | HTMLElement>(null);
   const [languageAnchor, setLanguageAnchor] = useState<null | HTMLElement>(null);
+
+  const handleLogout = () => {
+    // Clear any auth tokens/session data
+    localStorage.removeItem('authToken');
+    sessionStorage.clear();
+    // Redirect to home page
+    navigate('/');
+    handleClose();
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -56,22 +67,24 @@ export default function Header() {
     { label: "Home", href: "/" },
     { label: "Book Flights", href: "/book" },
     { label: "My Bookings", href: "/bookings" },
-    { label: "Check-In", href: "/check-in" },
-    { label: "Flight Status", href: "/status" },
+    { label: "Check-In", href: "/profile" }
   ];
 
   const services = [
-    "In-Flight Services",
-    "Baggage Information",
-    "Special Assistance"
+    { label: "In-Flight Services", action: () => { navigate('/services/inflight'); handleClose(); } },
+    { label: "Baggage Information", action: () => { navigate('/services/baggage'); handleClose(); } },
+    { label: "Special Assistance", action: () => { navigate('/services/assistance'); handleClose(); } },
+    { label: "Lounge Access", action: () => { navigate('/services/lounge'); handleClose(); } },
+    { label: "Travel Insurance", action: () => { navigate('/services/insurance'); handleClose(); } },
+    { label: "Seat Selection", action: () => { navigate('/services/seats'); handleClose(); } }
   ];
 
   const accountOptions = [
-    "My Profile",
-    "My Trips",
-    "Rewards Program",
-    "Settings",
-    "Logout"
+    { label: "My Profile", action: () => { navigate('/profile'); handleClose(); } },
+    { label: "My Trips", action: () => { navigate('/bookings'); handleClose(); } },
+    { label: "Rewards Program", action: handleClose },
+    { label: "Settings", action: handleClose },
+    { label: "Logout", action: handleLogout }
   ];
 
   const languages = ["English", "Hindi", "Spanish", "French"];
@@ -98,8 +111,8 @@ export default function Header() {
           <ListItemText primary="Services" />
         </ListItem>
         {services.map((service) => (
-          <ListItem key={service} component="button" sx={{ pl: 4 }}>
-            <ListItemText primary={service} />
+          <ListItem key={service.label} component="button" sx={{ pl: 4 }} onClick={service.action}>
+            <ListItemText primary={service.label} />
           </ListItem>
         ))}
       </List>
@@ -201,8 +214,8 @@ export default function Header() {
                   }}
                 >
                   {services.map((service) => (
-                    <MenuItem key={service} onClick={handleClose}>
-                      {service}
+                    <MenuItem key={service.label} onClick={service.action}>
+                      {service.label}
                     </MenuItem>
                   ))}
                 </Menu>
@@ -272,8 +285,8 @@ export default function Header() {
                 }}
               >
                 {accountOptions.map((option) => (
-                  <MenuItem key={option} onClick={handleClose}>
-                    {option}
+                  <MenuItem key={option.label} onClick={option.action}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </Menu>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 
@@ -35,6 +35,9 @@ interface SearchParams {
 
 export default function FlightSearch() {
    const navigate = useNavigate();
+  const departureDateRef = useRef<HTMLInputElement>(null);
+  const returnDateRef = useRef<HTMLInputElement>(null);
+
   const [searchParams, setSearchParams] = useState<SearchParams>({
     from: "",
     to: "",
@@ -47,6 +50,18 @@ export default function FlightSearch() {
   
   const [showResults, setShowResults] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<"price" | "departure" | "duration" | "rating">("price");
+
+  const handleDepartureDateClick = () => {
+    if (departureDateRef.current) {
+      departureDateRef.current.showPicker();
+    }
+  };
+
+  const handleReturnDateClick = () => {
+    if (returnDateRef.current) {
+      returnDateRef.current.showPicker();
+    }
+  };
 
   const allFlights: Flight[] = [
     {
@@ -273,11 +288,13 @@ export default function FlightSearch() {
                     Departure Date
                   </label>
                   <input
+                    ref={departureDateRef}
                     type="date"
                     value={searchParams.departureDate}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, departureDate: e.target.value }))}
+                    onClick={handleDepartureDateClick}
                     min={new Date().toISOString().split("T")[0]}
-                    style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box", cursor: "pointer" }}
                   />
                 </div>
 
@@ -286,11 +303,13 @@ export default function FlightSearch() {
                     Return Date (Optional)
                   </label>
                   <input
+                    ref={returnDateRef}
                     type="date"
                     value={searchParams.returnDate}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, returnDate: e.target.value }))}
+                    onClick={handleReturnDateClick}
                     min={searchParams.departureDate || new Date().toISOString().split("T")[0]}
-                    style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box", cursor: "pointer" }}
                   />
                 </div>
 

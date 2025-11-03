@@ -1,9 +1,11 @@
 import { Box, Typography, Card, CardContent, Button, Container, Chip } from "@mui/material";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import FlightIcon from "@mui/icons-material/Flight";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 
 export default function DestinationsSection() {
+  const navigate = useNavigate();
   const destinations = [
     { 
       city: "Mumbai", 
@@ -266,6 +268,7 @@ export default function DestinationsSection() {
                     className="book-btn"
                     variant="contained" 
                     fullWidth
+                    onClick={() => navigate('/book')}
                     sx={{ 
                       background: 'linear-gradient(135deg, #1976d2 0%, #0d47a1 100%)',
                       py: 1.5,
