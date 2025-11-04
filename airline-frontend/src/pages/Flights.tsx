@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { flightAPI } from "../services/api";
 
 
 interface Flight {
@@ -50,6 +51,65 @@ export default function FlightSearch() {
   
   const [showResults, setShowResults] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<"price" | "departure" | "duration" | "rating">("price");
+  const [allFlights, setAllFlights] = useState<Flight[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // Fetch all flights on component mount
+  useEffect(() => {
+    fetchFlights();
+  }, []);
+
+  const fetchFlights = async () => {
+    try {
+      setLoading(true);
+      const response = await flightAPI.getAll();
+      
+      // Transform backend data to match frontend format
+      const transformedFlights = response.data.map((flight: any) => ({
+        id: flight.id,
+        flightNumber: flight.flight_number,
+        airline: flight.airline,
+        from: flight.from_airport.split('(')[0].trim(),
+        fromCode: flight.from_airport.match(/\(([^)]+)\)/)?.[1] || '',
+        to: flight.to_airport.split('(')[0].trim(),
+        toCode: flight.to_airport.match(/\(([^)]+)\)/)?.[1] || '',
+        departure: new Date(flight.departure_time).toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }),
+        arrival: new Date(flight.arrival_time).toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }),
+        duration: calculateDuration(flight.departure_time, flight.arrival_time),
+        price: parseFloat(flight.price),
+        availableSeats: flight.available_seats,
+        aircraft: "Boeing 737",
+        flightClass: "Economy",
+        stops: 0,
+        amenities: ["WiFi", "Meals", "Entertainment"],
+        rating: 4.5,
+        reviews: 100
+      }));
+      
+      setAllFlights(transformedFlights);
+    } catch (error) {
+      console.error('Error fetching flights:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateDuration = (departure: string, arrival: string) => {
+    const dep = new Date(departure);
+    const arr = new Date(arrival);
+    const diff = arr.getTime() - dep.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
 
   const handleDepartureDateClick = () => {
     if (departureDateRef.current) {
@@ -62,131 +122,6 @@ export default function FlightSearch() {
       returnDateRef.current.showPicker();
     }
   };
-
-  const allFlights: Flight[] = [
-    {
-      id: 1,
-      flightNumber: "AI-2156",
-      airline: "Air India",
-      from: "Delhi",
-      fromCode: "DEL",
-      to: "Mumbai",
-      toCode: "BOM",
-      departure: "06:00",
-      arrival: "08:30",
-      duration: "2h 30m",
-      price: 5999,
-      originalPrice: 7999,
-      availableSeats: 45,
-      aircraft: "Boeing 737-800",
-      flightClass: "Economy",
-      stops: 0,
-      amenities: ["WiFi", "Meals", "USB Port", "Entertainment"],
-      rating: 4.5,
-      reviews: 2341
-    },
-    {
-      id: 2,
-      flightNumber: "6E-3421",
-      airline: "IndiGo",
-      from: "Delhi",
-      fromCode: "DEL",
-      to: "Mumbai",
-      toCode: "BOM",
-      departure: "09:15",
-      arrival: "11:45",
-      duration: "2h 30m",
-      price: 4999,
-      availableSeats: 28,
-      aircraft: "Airbus A320neo",
-      flightClass: "Economy",
-      stops: 0,
-      amenities: ["Snacks", "USB Port", "Extra Legroom"],
-      rating: 4.7,
-      reviews: 5621
-    },
-    {
-      id: 3,
-      flightNumber: "SG-8745",
-      airline: "SpiceJet",
-      from: "Delhi",
-      fromCode: "DEL",
-      to: "Mumbai",
-      toCode: "BOM",
-      departure: "13:30",
-      arrival: "16:00",
-      duration: "2h 30m",
-      price: 4299,
-      originalPrice: 5999,
-      availableSeats: 62,
-      aircraft: "Boeing 737-MAX",
-      flightClass: "Economy",
-      stops: 0,
-      amenities: ["Meals", "Priority Boarding"],
-      rating: 4.3,
-      reviews: 1823
-    },
-    {
-      id: 4,
-      flightNumber: "UK-5432",
-      airline: "Vistara",
-      from: "Delhi",
-      fromCode: "DEL",
-      to: "Mumbai",
-      toCode: "BOM",
-      departure: "15:45",
-      arrival: "18:15",
-      duration: "2h 30m",
-      price: 6799,
-      availableSeats: 32,
-      aircraft: "Airbus A321neo",
-      flightClass: "Premium Economy",
-      stops: 0,
-      amenities: ["WiFi", "Premium Meals", "Entertainment", "Lounge Access"],
-      rating: 4.8,
-      reviews: 3456
-    },
-    {
-      id: 5,
-      flightNumber: "AI-9876",
-      airline: "Air India",
-      from: "Delhi",
-      fromCode: "DEL",
-      to: "Mumbai",
-      toCode: "BOM",
-      departure: "17:45",
-      arrival: "20:15",
-      duration: "2h 30m",
-      price: 12999,
-      availableSeats: 12,
-      aircraft: "Boeing 787 Dreamliner",
-      flightClass: "Business",
-      stops: 0,
-      amenities: ["Lie-flat Seats", "Premium Dining", "WiFi", "Lounge", "Priority Check-in"],
-      rating: 4.9,
-      reviews: 891
-    },
-    {
-      id: 6,
-      flightNumber: "6E-7834",
-      airline: "IndiGo",
-      from: "Bangalore",
-      fromCode: "BLR",
-      to: "Delhi",
-      toCode: "DEL",
-      departure: "08:00",
-      arrival: "11:00",
-      duration: "3h 00m",
-      price: 6499,
-      availableSeats: 35,
-      aircraft: "Airbus A321",
-      flightClass: "Economy",
-      stops: 0,
-      amenities: ["Snacks", "USB Port"],
-      rating: 4.6,
-      reviews: 2134
-    },
-  ];
 
   const getFilteredFlights = () => {
     return allFlights.filter((flight) => {
@@ -210,9 +145,56 @@ export default function FlightSearch() {
     return 0;
   });
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (searchParams.from && searchParams.to && searchParams.departureDate) {
       setShowResults(true);
+      setLoading(true);
+      
+      try {
+        // Try to search with API
+        const response = await flightAPI.search({
+          from: searchParams.from,
+          to: searchParams.to,
+          date: searchParams.departureDate
+        });
+        
+        if (response.data.length > 0) {
+          const transformedFlights = response.data.map((flight: any) => ({
+            id: flight.id,
+            flightNumber: flight.flight_number,
+            airline: flight.airline,
+            from: flight.from_airport.split('(')[0].trim(),
+            fromCode: flight.from_airport.match(/\(([^)]+)\)/)?.[1] || '',
+            to: flight.to_airport.split('(')[0].trim(),
+            toCode: flight.to_airport.match(/\(([^)]+)\)/)?.[1] || '',
+            departure: new Date(flight.departure_time).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            }),
+            arrival: new Date(flight.arrival_time).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            }),
+            duration: calculateDuration(flight.departure_time, flight.arrival_time),
+            price: parseFloat(flight.price),
+            availableSeats: flight.available_seats,
+            aircraft: "Boeing 737",
+            flightClass: "Economy",
+            stops: 0,
+            amenities: ["WiFi", "Meals", "Entertainment"],
+            rating: 4.5,
+            reviews: 100
+          }));
+          setAllFlights(transformedFlights);
+        }
+      } catch (error) {
+        console.error('Error searching flights:', error);
+        // Fallback to client-side filtering
+      } finally {
+        setLoading(false);
+      }
     } else {
       alert("Please fill in all required fields");
     }
@@ -411,7 +393,14 @@ export default function FlightSearch() {
             </div>
 
             {/* Flights List */}
-            {sortedFlights.length > 0 ? (
+            {loading ? (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "300px" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "48px", marginBottom: "16px" }}>✈️</div>
+                  <div style={{ fontSize: "18px", color: "#64748b", fontWeight: "600" }}>Searching for flights...</div>
+                </div>
+              </div>
+            ) : sortedFlights.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {sortedFlights.map((flight) => (
                   <div
