@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { flightAPI } from "../services/api";
 
 
@@ -36,6 +36,7 @@ interface SearchParams {
 
 export default function FlightSearch() {
    const navigate = useNavigate();
+   const location = useLocation();
   const departureDateRef = useRef<HTMLInputElement>(null);
   const returnDateRef = useRef<HTMLInputElement>(null);
 
@@ -53,11 +54,45 @@ export default function FlightSearch() {
   const [sortBy, setSortBy] = useState<"price" | "departure" | "duration" | "rating">("price");
   const [allFlights, setAllFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [showFromSuggestions, setShowFromSuggestions] = useState<boolean>(false);
+  const [showToSuggestions, setShowToSuggestions] = useState<boolean>(false);
 
   // Fetch all flights on component mount
   useEffect(() => {
     fetchFlights();
-  }, []);
+    
+    // Check if search params were passed from Home page
+    if (location.state?.searchParams) {
+      const params = location.state.searchParams;
+      setSearchParams(prev => ({
+        ...prev,
+        from: params.from || "",
+        to: params.to || "",
+        departureDate: params.departureDate || "",
+        returnDate: params.returnDate || ""
+      }));
+    }
+  }, [location.state]);
+
+  // Trigger search when searchParams are set from navigation
+  useEffect(() => {
+    if (searchParams.from && searchParams.to && searchParams.departureDate && location.state?.searchParams) {
+      handleSearch();
+    }
+  }, [searchParams.from, searchParams.to, searchParams.departureDate]);
+
+  // Extract unique cities from flights
+  useEffect(() => {
+    if (allFlights.length > 0) {
+      const cities = new Set<string>();
+      allFlights.forEach(flight => {
+        cities.add(`${flight.from} (${flight.fromCode})`);
+        cities.add(`${flight.to} (${flight.toCode})`);
+      });
+      setAvailableCities(Array.from(cities).sort());
+    }
+  }, [allFlights]);
 
   const fetchFlights = async () => {
     try {
@@ -95,8 +130,13 @@ export default function FlightSearch() {
       }));
       
       setAllFlights(transformedFlights);
+      
+      // Show results if flights are available
+      if (transformedFlights.length > 0) {
+        setShowResults(true);
+      }
     } catch (error) {
-      console.error('Error fetching flights:', error);
+      console.error('❌ Error fetching flights:', error);
     } finally {
       setLoading(false);
     }
@@ -125,13 +165,18 @@ export default function FlightSearch() {
 
   const getFilteredFlights = () => {
     return allFlights.filter((flight) => {
+      const fullFrom = `${flight.from} (${flight.fromCode})`;
+      const fullTo = `${flight.to} (${flight.toCode})`;
+      
       const matchesFrom = !searchParams.from || 
-        flight.from.toLowerCase().includes(searchParams.from.toLowerCase()) ||
-        flight.fromCode.toLowerCase().includes(searchParams.from.toLowerCase());
+        fullFrom.toLowerCase().includes(searchParams.from.toLowerCase()) ||
+        searchParams.from.toLowerCase().includes(flight.from.toLowerCase()) ||
+        searchParams.from.toLowerCase().includes(flight.fromCode.toLowerCase());
       
       const matchesTo = !searchParams.to || 
-        flight.to.toLowerCase().includes(searchParams.to.toLowerCase()) ||
-        flight.toCode.toLowerCase().includes(searchParams.to.toLowerCase());
+        fullTo.toLowerCase().includes(searchParams.to.toLowerCase()) ||
+        searchParams.to.toLowerCase().includes(flight.to.toLowerCase()) ||
+        searchParams.to.toLowerCase().includes(flight.toCode.toLowerCase());
       
       return matchesFrom && matchesTo;
     });
@@ -150,6 +195,8 @@ export default function FlightSearch() {
       setShowResults(true);
       setLoading(true);
       
+      console.log('🔍 Searching:', searchParams.from, '→', searchParams.to, '|', searchParams.departureDate);
+      
       try {
         // Try to search with API
         const response = await flightAPI.search({
@@ -157,6 +204,8 @@ export default function FlightSearch() {
           to: searchParams.to,
           date: searchParams.departureDate
         });
+        
+        console.log('📦 Found', response.data.length, 'flights');
         
         if (response.data.length > 0) {
           const transformedFlights = response.data.map((flight: any) => ({
@@ -214,6 +263,24 @@ export default function FlightSearch() {
     return logos[airline] || "✈️";
   };
 
+  // Filter cities based on input
+  const getFilteredCities = (input: string) => {
+    if (!input.trim()) return availableCities;
+    return availableCities.filter(city => 
+      city.toLowerCase().includes(input.toLowerCase())
+    );
+  };
+
+  const handleFromSelect = (city: string) => {
+    setSearchParams(prev => ({ ...prev, from: city }));
+    setShowFromSuggestions(false);
+  };
+
+  const handleToSelect = (city: string) => {
+    setSearchParams(prev => ({ ...prev, to: city }));
+    setShowToSuggestions(false);
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(to bottom, #f8fafc, #f1f5f9)" }}>
       {/* Navigation Bar */}
@@ -223,6 +290,17 @@ export default function FlightSearch() {
             <span style={{ fontSize: "28px" }}>✈️</span>
             <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#1e40af", margin: 0 }}>SkyWings</h1>
           </div>
+        </div>
+      </div>
+
+      {/* Debug Info */}
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "16px 24px" }}>
+        <div style={{ background: "#fff3cd", border: "1px solid #ffc107", borderRadius: "8px", padding: "12px", fontSize: "14px" }}>
+          <strong>🔍 Debug Info:</strong> 
+          <div>Loading: {loading ? 'Yes' : 'No'}</div>
+          <div>Show Results: {showResults ? 'Yes' : 'No'}</div>
+          <div>Total Flights in State: {allFlights.length}</div>
+          <div>Sorted Flights: {sortedFlights.length}</div>
         </div>
       </div>
 
@@ -239,60 +317,239 @@ export default function FlightSearch() {
 
             <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", padding: "32px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "24px" }}>
-                <div>
+                {/* From Input with Autocomplete */}
+                <div style={{ position: "relative" }}>
                   <label style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
                     From
                   </label>
                   <input
                     type="text"
                     value={searchParams.from}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, from: e.target.value }))}
+                    onChange={(e) => {
+                      setSearchParams(prev => ({ ...prev, from: e.target.value }));
+                      setShowFromSuggestions(true);
+                    }}
+                    onFocus={() => setShowFromSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowFromSuggestions(false), 200)}
                     placeholder="City or airport"
                     style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box" }}
                   />
+                  {showFromSuggestions && getFilteredCities(searchParams.from).length > 0 && (
+                    <div style={{ 
+                      position: "absolute", 
+                      top: "100%", 
+                      left: 0, 
+                      right: 0, 
+                      background: "white", 
+                      border: "1px solid #d1d5db", 
+                      borderRadius: "8px", 
+                      marginTop: "4px", 
+                      maxHeight: "240px", 
+                      overflowY: "auto", 
+                      boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                      zIndex: 1000,
+                      // Custom scrollbar for webkit browsers (Chrome, Safari, Edge)
+                      WebkitOverflowScrolling: "touch",
+                    } as React.CSSProperties & { WebkitOverflowScrolling?: string }}>
+                      {getFilteredCities(searchParams.from).map((city, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleFromSelect(city)}
+                          style={{ 
+                            padding: "12px 16px", 
+                            cursor: "pointer", 
+                            borderBottom: idx < getFilteredCities(searchParams.from).length - 1 ? "1px solid #f3f4f6" : "none",
+                            transition: "background-color 0.2s ease"
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = "#dbeafe"}
+                          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "18px" }}>✈️</span>
+                            <span style={{ fontSize: "14px", fontWeight: "500" }}>{city}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
+                {/* To Input with Autocomplete */}
+                <div style={{ position: "relative" }}>
                   <label style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
                     To
                   </label>
                   <input
                     type="text"
                     value={searchParams.to}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, to: e.target.value }))}
+                    onChange={(e) => {
+                      setSearchParams(prev => ({ ...prev, to: e.target.value }));
+                      setShowToSuggestions(true);
+                    }}
+                    onFocus={() => setShowToSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowToSuggestions(false), 200)}
                     placeholder="City or airport"
                     style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box" }}
                   />
+                  {showToSuggestions && getFilteredCities(searchParams.to).length > 0 && (
+                    <div style={{ 
+                      position: "absolute", 
+                      top: "100%", 
+                      left: 0, 
+                      right: 0, 
+                      background: "white", 
+                      border: "1px solid #d1d5db", 
+                      borderRadius: "8px", 
+                      marginTop: "4px", 
+                      maxHeight: "240px", 
+                      overflowY: "auto", 
+                      boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                      zIndex: 1000,
+                      WebkitOverflowScrolling: "touch",
+                    } as React.CSSProperties & { WebkitOverflowScrolling?: string }}>
+                      {getFilteredCities(searchParams.to).map((city, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleToSelect(city)}
+                          style={{ 
+                            padding: "12px 16px", 
+                            cursor: "pointer", 
+                            borderBottom: idx < getFilteredCities(searchParams.to).length - 1 ? "1px solid #f3f4f6" : "none",
+                            transition: "background-color 0.2s ease"
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = "#dbeafe"}
+                          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "18px" }}>✈️</span>
+                            <span style={{ fontSize: "14px", fontWeight: "500" }}>{city}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                <div style={{ position: "relative" }}>
+                  <label style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "18px" }}>📅</span>
                     Departure Date
                   </label>
-                  <input
-                    ref={departureDateRef}
-                    type="date"
-                    value={searchParams.departureDate}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, departureDate: e.target.value }))}
-                    onClick={handleDepartureDateClick}
-                    min={new Date().toISOString().split("T")[0]}
-                    style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box", cursor: "pointer" }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      ref={departureDateRef}
+                      type="date"
+                      value={searchParams.departureDate}
+                      onChange={(e) => setSearchParams(prev => ({ ...prev, departureDate: e.target.value }))}
+                      onClick={handleDepartureDateClick}
+                      min={new Date().toISOString().split("T")[0]}
+                      max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                      style={{ 
+                        width: "100%", 
+                        padding: "12px 16px 12px 44px", 
+                        border: "2px solid #d1d5db", 
+                        borderRadius: "8px", 
+                        fontSize: "16px", 
+                        boxSizing: "border-box", 
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        backgroundColor: "#f9fafb",
+                        fontWeight: "500"
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = "#1e40af";
+                        e.currentTarget.style.backgroundColor = "white";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(30, 64, 175, 0.1)";
+                      }}
+                      onMouseOut={(e) => {
+                        if (document.activeElement !== e.currentTarget) {
+                          e.currentTarget.style.borderColor = "#d1d5db";
+                          e.currentTarget.style.backgroundColor = "#f9fafb";
+                          e.currentTarget.style.boxShadow = "none";
+                        }
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = "#1e40af";
+                        e.currentTarget.style.backgroundColor = "white";
+                        e.currentTarget.style.boxShadow = "0 4px 16px rgba(30, 64, 175, 0.15)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = "#d1d5db";
+                        e.currentTarget.style.backgroundColor = "#f9fafb";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    />
+                    <span style={{ 
+                      position: "absolute", 
+                      left: "16px", 
+                      top: "50%", 
+                      transform: "translateY(-50%)", 
+                      fontSize: "18px",
+                      pointerEvents: "none",
+                      color: "#1e40af"
+                    }}>📆</span>
+                  </div>
                 </div>
 
-                <div>
-                  <label style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                <div style={{ position: "relative" }}>
+                  <label style={{ display: "block", fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "18px" }}>🔁</span>
                     Return Date (Optional)
                   </label>
-                  <input
-                    ref={returnDateRef}
-                    type="date"
-                    value={searchParams.returnDate}
-                    onChange={(e) => setSearchParams(prev => ({ ...prev, returnDate: e.target.value }))}
-                    onClick={handleReturnDateClick}
-                    min={searchParams.departureDate || new Date().toISOString().split("T")[0]}
-                    style={{ width: "100%", padding: "12px 16px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "16px", boxSizing: "border-box", cursor: "pointer" }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      ref={returnDateRef}
+                      type="date"
+                      value={searchParams.returnDate}
+                      onChange={(e) => setSearchParams(prev => ({ ...prev, returnDate: e.target.value }))}
+                      onClick={handleReturnDateClick}
+                      min={searchParams.departureDate || new Date().toISOString().split("T")[0]}
+                      max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                      style={{ 
+                        width: "100%", 
+                        padding: "12px 16px 12px 44px", 
+                        border: searchParams.returnDate ? "2px solid #10b981" : "2px solid #d1d5db", 
+                        borderRadius: "8px", 
+                        fontSize: "16px", 
+                        boxSizing: "border-box", 
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        backgroundColor: searchParams.returnDate ? "#f0fdf4" : "#f9fafb",
+                        fontWeight: "500"
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = searchParams.returnDate ? "#10b981" : "#1e40af";
+                        e.currentTarget.style.backgroundColor = "white";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(30, 64, 175, 0.1)";
+                      }}
+                      onMouseOut={(e) => {
+                        if (document.activeElement !== e.currentTarget) {
+                          e.currentTarget.style.borderColor = searchParams.returnDate ? "#10b981" : "#d1d5db";
+                          e.currentTarget.style.backgroundColor = searchParams.returnDate ? "#f0fdf4" : "#f9fafb";
+                          e.currentTarget.style.boxShadow = "none";
+                        }
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = "#1e40af";
+                        e.currentTarget.style.backgroundColor = "white";
+                        e.currentTarget.style.boxShadow = "0 4px 16px rgba(30, 64, 175, 0.15)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = searchParams.returnDate ? "#10b981" : "#d1d5db";
+                        e.currentTarget.style.backgroundColor = searchParams.returnDate ? "#f0fdf4" : "#f9fafb";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    />
+                    <span style={{ 
+                      position: "absolute", 
+                      left: "16px", 
+                      top: "50%", 
+                      transform: "translateY(-50%)", 
+                      fontSize: "18px",
+                      pointerEvents: "none",
+                      color: searchParams.returnDate ? "#10b981" : "#94a3b8"
+                    }}>🗓️</span>
+                  </div>
                 </div>
 
                 <div>
@@ -349,17 +606,21 @@ export default function FlightSearch() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
                 <div>
                   <h2 style={{ fontSize: "24px", fontWeight: "bold", color: "#1e293b", margin: "0 0 8px 0" }}>
-                    {searchParams.from} → {searchParams.to}
+                    {searchParams.from && searchParams.to 
+                      ? `${searchParams.from} → ${searchParams.to}` 
+                      : 'Available Flights'}
                   </h2>
                   <p style={{ color: "#64748b", margin: 0 }}>
-                    {searchParams.departureDate} • {searchParams.passengers} Passenger{searchParams.passengers > 1 ? "s" : ""} • {sortedFlights.length} flights found
+                    {searchParams.departureDate 
+                      ? `${searchParams.departureDate} • ${searchParams.passengers} Passenger${searchParams.passengers > 1 ? "s" : ""} • ` 
+                      : ''}{sortedFlights.length} flights found
                   </p>
                 </div>
                 <button
                   onClick={() => setShowResults(false)}
                   style={{ padding: "12px 24px", background: "#f1f5f9", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer", color: "#1e40af" }}
                 >
-                  ← Modify Search
+                  ← New Search
                 </button>
               </div>
 

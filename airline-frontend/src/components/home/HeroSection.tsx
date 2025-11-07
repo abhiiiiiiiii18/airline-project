@@ -1,33 +1,105 @@
-import { Box, Typography, Card, CardContent, TextField, Button, Chip } from "@mui/material";
+import { Box, Typography, Card, CardContent, TextField, Button, Chip, InputAdornment } from "@mui/material";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
+import { useState, useEffect } from "react";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import { flightAPI } from "../../services/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import "./datepicker-custom.css";
 
 export default function HeroSection() {
   const navigate = useNavigate();
-  const departureDateRef = useRef<HTMLInputElement>(null);
-  const returnDateRef = useRef<HTMLInputElement>(null);
+  
+  const [searchParams, setSearchParams] = useState({
+    from: "",
+    to: "",
+    departureDate: "",
+    returnDate: ""
+  });
+  
+  const [departureDateObj, setDepartureDateObj] = useState<Date | null>(null);
+  const [returnDateObj, setReturnDateObj] = useState<Date | null>(null);
+  
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [showFromSuggestions, setShowFromSuggestions] = useState(false);
+  const [showToSuggestions, setShowToSuggestions] = useState(false);
 
-  const handleDepartureDateClick = () => {
-    if (departureDateRef.current) {
-      departureDateRef.current.showPicker();
-    }
+  // Fetch flights and extract cities
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await flightAPI.getAll();
+        const cities = new Set<string>();
+        
+        response.data.forEach((flight: any) => {
+          const fromCity = flight.from_airport; // e.g., "Delhi (DEL)"
+          const toCity = flight.to_airport;     // e.g., "Mumbai (BOM)"
+          cities.add(fromCity);
+          cities.add(toCity);
+        });
+        
+        setAvailableCities(Array.from(cities).sort());
+      } catch (error) {
+        console.error('Error fetching cities:', error);
+      }
+    };
+    
+    fetchCities();
+  }, []);
+
+  // Helper function to format date in local timezone (YYYY-MM-DD)
+  const formatDateLocal = (date: Date | null): string => {
+    if (!date) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  const handleReturnDateClick = () => {
-    if (returnDateRef.current) {
-      returnDateRef.current.showPicker();
-    }
+  const handleSearch = () => {
+    // Navigate to flights page with search parameters
+    navigate('/book', { 
+      state: { 
+        searchParams: {
+          from: searchParams.from,
+          to: searchParams.to,
+          departureDate: formatDateLocal(departureDateObj),
+          returnDate: formatDateLocal(returnDateObj)
+        }
+      } 
+    });
   };
+
+  // Filter cities based on input
+  const getFilteredCities = (input: string) => {
+    if (!input.trim()) return availableCities;
+    return availableCities.filter(city => 
+      city.toLowerCase().includes(input.toLowerCase())
+    );
+  };
+
+  const handleFromSelect = (city: string) => {
+    setSearchParams(prev => ({ ...prev, from: city }));
+    setShowFromSuggestions(false);
+  };
+
+  const handleToSelect = (city: string) => {
+    setSearchParams(prev => ({ ...prev, to: city }));
+    setShowToSuggestions(false);
+  };
+
   return (
     <Box
       className="w-full min-h-screen relative flex items-center justify-between overflow-hidden"
-      style={{ 
+      sx={{ 
         position: 'relative',
-        background: 'linear-gradient(135deg, #0f2027 0%, #203a43 25%, #2c5364 50%, #1976d2 75%, #42a5f5 100%)'
+        background: 'linear-gradient(135deg, #0f2027 0%, #203a43 25%, #2c5364 50%, #1976d2 75%, #42a5f5 100%)',
+        pt: { xs: '80px', sm: '90px', md: '100px' }  // Top padding to account for fixed header
       }}
     >
       {/* Animated Dynamic Gradient Background */}
@@ -367,7 +439,6 @@ export default function HeroSection() {
           type: "spring",
           stiffness: 100
         }}
-        whileHover={{ scale: 1.02, y: -5 }}
         className="relative z-20"
         style={{ paddingRight: "5%", maxWidth: "45%" }}
       >
@@ -438,6 +509,7 @@ export default function HeroSection() {
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 1.3 }}
+              style={{ position: 'relative' }}
             >
               <TextField 
                 fullWidth 
@@ -445,6 +517,13 @@ export default function HeroSection() {
                 placeholder="Enter departure city"
                 margin="normal"
                 variant="outlined"
+                value={searchParams.from}
+                onChange={(e) => {
+                  setSearchParams(prev => ({ ...prev, from: e.target.value }));
+                  setShowFromSuggestions(true);
+                }}
+                onFocus={() => setShowFromSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowFromSuggestions(false), 200)}
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 3,
@@ -461,12 +540,52 @@ export default function HeroSection() {
                   }
                 }}
               />
+              {/* Autocomplete Dropdown for From */}
+              {showFromSuggestions && getFilteredCities(searchParams.from).length > 0 && (
+                <Box sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 2,
+                  mt: 0.5,
+                  maxHeight: '240px',
+                  overflowY: 'auto',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  zIndex: 9999,
+                }}>
+                  {getFilteredCities(searchParams.from).map((city, idx) => (
+                    <Box
+                      key={idx}
+                      onClick={() => handleFromSelect(city)}
+                      sx={{
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        borderBottom: idx < getFilteredCities(searchParams.from).length - 1 ? '1px solid #f5f5f5' : 'none',
+                        transition: 'background-color 0.2s ease',
+                        '&:hover': {
+                          backgroundColor: '#e3f2fd'
+                        },
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <FlightTakeoffIcon sx={{ fontSize: 18, color: '#1976d2' }} />
+                      <Typography variant="body2" fontWeight={500}>{city}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </motion.div>
             
             <motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 1.4 }}
+              style={{ position: 'relative' }}
             >
               <TextField 
                 fullWidth 
@@ -474,6 +593,13 @@ export default function HeroSection() {
                 placeholder="Enter destination"
                 margin="normal"
                 variant="outlined"
+                value={searchParams.to}
+                onChange={(e) => {
+                  setSearchParams(prev => ({ ...prev, to: e.target.value }));
+                  setShowToSuggestions(true);
+                }}
+                onFocus={() => setShowToSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowToSuggestions(false), 200)}
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 3,
@@ -490,6 +616,45 @@ export default function HeroSection() {
                   }
                 }}
               />
+              {/* Autocomplete Dropdown for To */}
+              {showToSuggestions && getFilteredCities(searchParams.to).length > 0 && (
+                <Box sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 2,
+                  mt: 0.5,
+                  maxHeight: '240px',
+                  overflowY: 'auto',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  zIndex: 9999,
+                }}>
+                  {getFilteredCities(searchParams.to).map((city, idx) => (
+                    <Box
+                      key={idx}
+                      onClick={() => handleToSelect(city)}
+                      sx={{
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        borderBottom: idx < getFilteredCities(searchParams.to).length - 1 ? '1px solid #f5f5f5' : 'none',
+                        transition: 'background-color 0.2s ease',
+                        '&:hover': {
+                          backgroundColor: '#e3f2fd'
+                        },
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <FlightTakeoffIcon sx={{ fontSize: 18, color: '#1976d2' }} />
+                      <Typography variant="body2" fontWeight={500}>{city}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </motion.div>
             
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
@@ -498,32 +663,53 @@ export default function HeroSection() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 1.5 }}
                 style={{ flex: 1 }}
+                className="custom-datepicker"
               >
-                <TextField
-                  fullWidth
-                  label="Departure"
-                  type="date"
-                  margin="normal"
-                  InputLabelProps={{ shrink: true }}
-                  variant="outlined"
-                  inputRef={departureDateRef}
-                  onClick={handleDepartureDateClick}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 3,
-                      backgroundColor: "rgba(245, 247, 250, 0.8)",
-                      transition: 'all 0.3s',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'white',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-                      },
-                      '&.Mui-focused': {
-                        backgroundColor: 'white',
-                        boxShadow: '0 4px 20px rgba(25, 118, 210, 0.15)'
-                      }
-                    }
-                  }}
+                <DatePicker
+                  selected={departureDateObj}
+                  onChange={(date: Date | null) => setDepartureDateObj(date)}
+                  dateFormat="MMMM d, yyyy"
+                  placeholderText="Select departure date"
+                  popperClassName="date-picker-popper"
+                  fixedHeight
+                  customInput={
+                    <TextField
+                      fullWidth
+                      label="Departure Date"
+                      margin="normal"
+                      InputLabelProps={{ shrink: true }}
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CalendarTodayIcon sx={{ color: '#1976d2', fontSize: 20 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 3,
+                          backgroundColor: "rgba(245, 247, 250, 0.8)",
+                          transition: 'background-color 0.3s, box-shadow 0.3s',
+                          cursor: 'pointer',
+                          paddingLeft: '8px',
+                          '&:hover': {
+                            backgroundColor: 'white',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                          },
+                          '&.Mui-focused': {
+                            backgroundColor: 'white',
+                            boxShadow: '0 4px 20px rgba(25, 118, 210, 0.15)',
+                            borderColor: '#1976d2'
+                          }
+                        },
+                        "& .MuiInputLabel-root": {
+                          fontWeight: 600,
+                          color: '#1976d2'
+                        }
+                      }}
+                    />
+                  }
                 />
               </motion.div>
               
@@ -532,32 +718,55 @@ export default function HeroSection() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 1.6 }}
                 style={{ flex: 1 }}
+                className="custom-datepicker"
               >
-                <TextField
-                  fullWidth
-                  label="Return"
-                  type="date"
-                  margin="normal"
-                  InputLabelProps={{ shrink: true }}
-                  variant="outlined"
-                  inputRef={returnDateRef}
-                  onClick={handleReturnDateClick}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 3,
-                      backgroundColor: "rgba(245, 247, 250, 0.8)",
-                      transition: 'all 0.3s',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'white',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-                      },
-                      '&.Mui-focused': {
-                        backgroundColor: 'white',
-                        boxShadow: '0 4px 20px rgba(25, 118, 210, 0.15)'
-                      }
-                    }
-                  }}
+                <DatePicker
+                  selected={returnDateObj}
+                  onChange={(date: Date | null) => setReturnDateObj(date)}
+                  minDate={departureDateObj || new Date()}
+                  dateFormat="MMMM d, yyyy"
+                  placeholderText="Select return date (optional)"
+                  isClearable
+                  popperClassName="date-picker-popper"
+                  fixedHeight
+                  customInput={
+                    <TextField
+                      fullWidth
+                      label="Return Date (Optional)"
+                      margin="normal"
+                      InputLabelProps={{ shrink: true }}
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EventAvailableIcon sx={{ color: returnDateObj ? '#1976d2' : '#9e9e9e', fontSize: 20 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 3,
+                          backgroundColor: "rgba(245, 247, 250, 0.8)",
+                          transition: 'background-color 0.3s, box-shadow 0.3s',
+                          cursor: 'pointer',
+                          paddingLeft: '8px',
+                          '&:hover': {
+                            backgroundColor: 'white',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                          },
+                          '&.Mui-focused': {
+                            backgroundColor: 'white',
+                            boxShadow: '0 4px 20px rgba(25, 118, 210, 0.15)',
+                            borderColor: '#1976d2'
+                          }
+                        },
+                        "& .MuiInputLabel-root": {
+                          fontWeight: 600,
+                          color: returnDateObj ? '#1976d2' : '#757575'
+                        }
+                      }}
+                    />
+                  }
                 />
               </motion.div>
             </Box>
@@ -573,7 +782,7 @@ export default function HeroSection() {
                 variant="contained"
                 startIcon={<FlightTakeoffIcon />}
                 fullWidth
-                onClick={() => navigate('/flights')}
+                onClick={handleSearch}
                 sx={{ 
                   mt: 3,
                   py: 2,

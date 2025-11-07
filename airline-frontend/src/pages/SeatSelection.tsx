@@ -248,7 +248,7 @@ export default function SeatSelection({ flightData, onContinueToPayment }: SeatS
               </div>
             </div>
 
-            <div style={{ maxHeight: "600px", overflowY: "auto", padding: "0 20px" }}>
+            <div style={{ maxHeight: "600px", overflowY: "auto", padding: "0 20px" }} className="seat-container">
               <div style={{ marginBottom: "32px" }}>
                 <div style={{ textAlign: "center", marginBottom: "16px", padding: "8px", background: "linear-gradient(135deg, #f3e8ff, #e9d5ff)", borderRadius: "8px" }}>
                   <span style={{ fontWeight: "bold", color: "#7c3aed" }}>BUSINESS CLASS</span>

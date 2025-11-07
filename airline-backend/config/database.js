@@ -13,13 +13,14 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    return console.error('Error acquiring client', err.stack);
-  }
-  console.log('✅ Database connected successfully');
-  release();
-});
+// Test database connection (non-blocking)
+pool.connect()
+  .then((client) => {
+    console.log('✅ Database connected successfully');
+    client.release();
+  })
+  .catch((err) => {
+    console.error('❌ Error connecting to database:', err.message);
+  });
 
 export default pool;
